@@ -1,0 +1,95 @@
+name: "Terraform CI/CD"
+
+on:
+  push:
+    branches:
+      - '**'          # 🎯 Dev Isolation: Pushes to any branch (like dev-1) ONLY run validation
+    paths:
+      - 'terraform/**'
+  
+  # 🎯 Production Isolation: Version tags will ONLY trigger the deployment workflow
+  # when they are explicitly targeted or merged into your main production branch.
+  create:
+    tags:
+      - 'v*'
+  push:
+    tags:
+      - 'v*'
+
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'terraform/**'
+
+
+jobs:
+  terraform_plan:
+    name: "Verify Code and Preview Plan"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4.2.2
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3.1.2
+        with:
+          terraform_version: "1.15.4"
+
+      - name: Terraform Format Check
+        run: terraform fmt -check
+        working-directory: ./terraform
+
+      - name: Terraform Init
+        run: terraform init
+        working-directory: ./terraform
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: "us-east-1"
+
+      - name: Terraform Validate
+        run: terraform validate
+        working-directory: ./terraform
+
+      - name: Terraform Plan
+        if: github.ref == 'refs/heads/main' || github.base_ref == 'main'
+        run: terraform plan
+        working-directory: ./terraform
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: "us-east-1"
+
+  terraform_apply:
+    name: "Execute Automated Deployment"
+    needs: terraform_plan
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4.2.2
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3.1.2
+        with:
+          terraform_version: "1.15.4"
+
+      - name: Terraform Init
+        run: terraform init
+        working-directory: ./terraform
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: "us-east-1"
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
+        working-directory: ./terraform
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: "us-east-1"
+
