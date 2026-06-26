@@ -2,23 +2,17 @@ name: "Terraform CI/CD"
 
 on:
   push:
+    # 🎯 Both branch pushes and tag pushes must live inside this single 'push' key
     branches:
-      - '**'          # 🎯 Dev Isolation: Pushes to any branch (like dev-1) ONLY run validation
+      - '**'          
+    tags:
+      - 'v*'  
     paths:
-      - 'terraform/**'
+      - 'terraform/**'       
   
-  # 🎯 Production Isolation: Version tags will ONLY trigger the deployment workflow
-  # when they are explicitly targeted or merged into your main production branch.
-  create:
-    tags:
-      - 'v*'
-  push:
-    tags:
-      - 'v*'
-
   pull_request:
     branches:
-      - main
+      - main          
     paths:
       - 'terraform/**'
 
