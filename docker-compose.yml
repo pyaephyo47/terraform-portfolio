@@ -11,8 +11,8 @@ services:
     image: public.ecr.aws/docker/library/postgres:15-alpine
     container_name: port-db
     environment:
-      POSTGRES_USER: cloud_admin
-      POSTGRES_PASSWORD: SecretSecurePassword123!
-      POSTGRES_DB: terraform_portfolio
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
     ports:
       - "5432:5432"
